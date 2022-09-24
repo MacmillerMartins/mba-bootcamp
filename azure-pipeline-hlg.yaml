@@ -152,8 +152,8 @@ stages:
         releaseName: '$(system.teamProject)'
         command: 'upgrade'
         chartType: 'FilePath'
-        chartPath: '$(Build.ArtifactStagingDirectory)/helm/hlg'
-#       recreate: true
+        chartPath: '$(Build.ArtifactStagingDirectory)/helm'
+        recreate: true
         force: true
         overrideValues: |
           image.repository=$(repoDockerHubName)/$(system.teamProject)-hlg
