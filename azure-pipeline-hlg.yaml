@@ -56,14 +56,24 @@ stages:
         cliProjectKey: '$(sonarCloudProjectKey)'
         cliProjectName: '$(system.teamProject)'
         cliSources: '.'
-    - task: CmdLine@2
-      displayName: Go Test Build
+    - task: GoTool@0
+      displayName: Go Install
       inputs:
-        script: |
-          go mod init example.com/m/v2
-          go build
+        version: '1.18'
+    - task: Go@0
+      displayName: Go Build
+      inputs:
+        command: build
     - task: SonarCloudAnalyze@1
       displayName: SonarCloud Analyze
+    - task: ArchiveFiles@2
+      displayName: Archive files
+      inputs:
+        rootFolderOrFile: '$(Build.Repository.LocalPath)'
+        includeRootFolder: False
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Artifact
+      condition: succeededOrFailed()
     - task: SonarCloudPublish@1
       displayName: SonarCloud Publish
       inputs:
