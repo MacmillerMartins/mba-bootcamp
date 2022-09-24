@@ -149,7 +149,7 @@ stages:
         kubernetesServiceEndpoint: '$(aksServiceConnect)'
         azureResourceGroup: '$(azureResourceGroup)'
         kubernetesCluster: '$(kubernetesCluster)'
-        releaseName: '$(system.teamProject)'
+        releaseName: '$(system.teamProject)-hlg'
         command: 'upgrade'
         chartType: 'FilePath'
         chartPath: '$(Build.ArtifactStagingDirectory)/helm'
