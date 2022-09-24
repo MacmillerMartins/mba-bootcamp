@@ -1,0 +1,55 @@
+#next-version: 0.2.0
+mode: ContinuousDelivery
+ignore:
+  sha: []
+  commits-before:
+merge-message-formats: {}
+
+branches:
+  main:
+    regex: ^main
+    mode: ContinuousDelivery
+    tag: hlg
+    increment: Patch
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+    tracks-release-branches: false
+    is-release-branch: false
+  release:
+    regex: ^release?[/-]
+    mode: ContinuousDelivery
+    tag: prd
+    increment: Minor
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+    tracks-release-branches: false
+    is-release-branch: true
+    pre-release-weight: 1000
+  feature:
+    regex: ^feature?[/-]
+    mode: ContinuousDelivery
+    tag: useBranchName
+    increment: Inherit
+    prevent-increment-of-merged-branch-version: false
+    track-merge-target: false
+    tracks-release-branches: false
+    is-release-branch: false
+  pull-request:
+    regex: ^(pull|pull\-requests|pr)[/-]
+    mode: ContinuousDelivery
+    tag: pre
+    increment: Patch
+    prevent-increment-of-merged-branch-version: false
+    tag-number-pattern: '[/-](?<number>\d+)[-/]'
+    track-merge-target: false
+    tracks-release-branches: false
+    is-release-branch: false  
+  hotfix:
+    regex: ^hotfix(es)?[/-]
+    mode: ContinuousDelivery
+    tag: beta
+    increment: Patch
+    prevent-increment-of-merged-branch-version: false
+    track-merge-target: false
+    tracks-release-branches: false
+    is-release-branch: false

@@ -1,0 +1,167 @@
+resources:
+  repositories:
+  - repository: mba-bootcamp
+    type: github
+    endpoint: 'mba-bootcamp'
+    name: MacmillerMartins/mba-bootcamp
+
+variables:
+- name: repoDockerHubName
+  value: 'macmiller'
+- name: imageAgentAz
+  value: 'ubuntu-latest'
+- name: azureResourceGroup
+  value: 'rg-bootcamp'
+- name: kubernetesCluster
+  value: 'aks-bootcamp'
+- name: aksServiceConnect
+  value: 'sc-aks'
+- name: dockerHubServiceConnect
+  value: 'sc-dockerhub'
+- name: sonarCloudServiceConnect
+  value: 'sc-sonarcloud'
+- name: sonarCloudProjectKey
+  value: 'MacmillerMartins_mba-bootcamp'
+
+stages:
+
+- stage: Tests
+  displayName: Tests
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - job: Tests
+    displayName: Tests
+    pool:
+      vmImage: '$(imageAgentAz)'
+    steps:
+    - task: gitversion/setup@0
+      displayName: Install GitTools
+      inputs:
+        versionSpec: '5.6.8'
+    - task: gitversion/execute@0
+      displayName: Use GitVersion
+    - task: SonarCloudPrepare@1
+      displayName: SonarCloud Prepare
+      inputs:
+        SonarCloud: '$(sonarCloudServiceConnect)'
+        organization: '$(system.teamProject)'
+        scannerMode: 'CLI'
+        configMode: 'manual'
+        cliProjectKey: '$(sonarCloudProjectKey)'
+        cliProjectName: '$(system.teamProject)'
+        cliSources: '.'
+    - task: CmdLine@2
+      displayName: Go Test Build
+      inputs:
+        script: |
+          go mod init example.com/m/v2
+          go build
+    - task: SonarCloudAnalyze@1
+      displayName: SonarCloud Analyze
+    - task: SonarCloudPublish@1
+      displayName: SonarCloud Publish
+      inputs:
+        pollingTimeoutSec: '300'
+
+- stage: BuildandPublish
+  displayName: Build and Publish
+  dependsOn: Tests
+  jobs:
+  - job: BuildandPublish
+    displayName: Build and Publish
+    pool:
+      vmImage: '$(imageAgentAz)'
+    steps:
+    - task: gitversion/setup@0
+      displayName: Install GitTools
+      inputs:
+        versionSpec: '5.6.8'
+    - task: gitversion/execute@0
+      displayName: Use GitVersion
+    - task: Docker@2
+      displayName: Docker Build
+      inputs:
+        containerRegistry: '$(dockerHubServiceConnect)'
+        repository: '$(repoDockerHubName)/$(system.teamProject)'
+        command: 'build'
+        Dockerfile: '**/Dockerfile'
+        tags: |
+          $(GitVersion.MajorMinorPatch)
+          latest
+    - task: Docker@2
+      displayName: Docker Publish
+      inputs:
+        containerRegistry: '$(dockerHubServiceConnect)'
+        repository: '$(repoDockerHubName)/$(system.teamProject)'
+        command: 'push'
+        tags: |
+          $(GitVersion.MajorMinorPatch)
+          latest
+
+- stage: Deploy
+  displayName: Deploy
+  dependsOn: BuildandPublish
+  jobs:
+  - job: HelmCheck
+    displayName: Helm Check
+    pool:
+      vmImage: '$(imageAgentAz)'
+    steps:
+    - task: Bash@3
+      displayName: Helm lint
+      inputs:
+        targetType: 'inline'
+        script: |
+          helm lint helm
+        failOnStderr: true
+    - task: CopyFiles@2
+      displayName: Copy Helm Files
+      inputs:
+        SourceFolder: '$(system.defaultworkingdirectory)'
+        Contents: |
+          helm/**
+        TargetFolder: '$(Build.ArtifactStagingDirectory)/'
+        OverWrite: true
+    - task: PublishBuildArtifacts@1
+      displayName: Build and Plublish Artifacts Helm
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/helm'
+        ArtifactName: 'helm'
+        publishLocation: 'Container'
+  - job: DeploytoAks
+    displayName: Deploy to Aks
+    dependsOn: HelmCheck
+    pool:
+      vmImage: '$(imageAgentAz)'
+    steps:
+    - task: gitversion/setup@0
+      displayName: Install GitTools
+      inputs:
+        versionSpec: '5.6.8'
+    - task: gitversion/execute@0
+      displayName: Use GitVersion
+    - task: DownloadBuildArtifacts@1
+      displayName: Download Build Artifacts
+      inputs:
+        buildType: 'current'
+        buildVersionToDownload: 'latest'
+        downloadType: 'single'
+        artifactName: 'helm'
+        downloadPath: '$(Build.ArtifactStagingDirectory)'
+    - task: HelmDeploy@0
+      displayName: Helm Deploy
+      inputs:
+        connectionType: Kubernetes Service Connection
+        kubernetesServiceEndpoint: '$(aksServiceConnect)'
+        azureResourceGroup: '$(azureResourceGroup)'
+        kubernetesCluster: '$(kubernetesCluster)'
+        releaseName: '$(system.teamProject)'
+        command: 'upgrade'
+        chartType: 'FilePath'
+        chartPath: '$(Build.ArtifactStagingDirectory)/helm'
+        recreate: true
+        force: true
+        overrideValues: |
+          image.repository=$(repoDockerHubName)/$(system.teamProject)
+          image.tag=$(GitVersion.MajorMinorPatch)
+        arguments: '--debug --timeout 300s --history-max 10'
