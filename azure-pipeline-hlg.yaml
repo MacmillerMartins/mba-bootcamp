@@ -153,7 +153,7 @@ stages:
         command: 'upgrade'
         chartType: 'FilePath'
         chartPath: '$(Build.ArtifactStagingDirectory)/helm'
-#       recreate: true
+        recreate: true
         force: true
         overrideValues: |
           image.repository=$(repoDockerHubName)/$(system.teamProject)-hlg
