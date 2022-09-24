@@ -112,7 +112,7 @@ stages:
       inputs:
         targetType: 'inline'
         script: |
-          helm lint helm
+          helm lint helm/hlg
         failOnStderr: true
     - task: CopyFiles@2
       displayName: Copy Helm Files
@@ -125,7 +125,7 @@ stages:
     - task: PublishBuildArtifacts@1
       displayName: Build and Plublish Artifacts Helm
       inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)/helm'
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/helm/hlg'
         ArtifactName: 'helm'
         publishLocation: 'Container'
   - job: DeploytoAks
@@ -152,7 +152,7 @@ stages:
         releaseName: '$(system.teamProject)'
         command: 'upgrade'
         chartType: 'FilePath'
-        chartPath: '$(Build.ArtifactStagingDirectory)/helm'
+        chartPath: '$(Build.ArtifactStagingDirectory)/helm/hlg'
         recreate: true
         force: true
         overrideValues: |
