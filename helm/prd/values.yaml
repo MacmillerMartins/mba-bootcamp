@@ -2,7 +2,7 @@ replicas: 3
 
 containers:
   image:
-    repository: macmiller/mba-bootcamp
+    repository: macmiller/mba-bootcamp-prd
     tag: latest
   ports:
     containerPort: 8080
