@@ -34,12 +34,6 @@ stages:
     pool:
       vmImage: '$(imageAgentAz)'
     steps:
-    - task: gitversion/setup@0
-      displayName: Install GitTools
-      inputs:
-        versionSpec: '5.6.8'
-    - task: gitversion/execute@0
-      displayName: Use GitVersion
     - task: SonarCloudPrepare@1
       displayName: SonarCloud Prepare
       inputs:
@@ -72,12 +66,6 @@ stages:
     pool:
       vmImage: '$(imageAgentAz)'
     steps:
-    - task: gitversion/setup@0
-      displayName: Install GitTools
-      inputs:
-        versionSpec: '5.6.8'
-    - task: gitversion/execute@0
-      displayName: Use GitVersion
     - task: Docker@2
       displayName: Docker Build
       inputs:
@@ -86,7 +74,7 @@ stages:
         command: 'build'
         Dockerfile: '**/Dockerfile'
         tags: |
-          $(GitVersion.MajorMinorPatch)
+          $(Build.BuildId)
           latest
     - task: Docker@2
       displayName: Docker Publish
@@ -95,7 +83,7 @@ stages:
         repository: '$(repoDockerHubName)/$(system.teamProject)'
         command: 'push'
         tags: |
-          $(GitVersion.MajorMinorPatch)
+          $(Build.BuildId)
           latest
 
 - stage: Deploy
@@ -134,12 +122,6 @@ stages:
     pool:
       vmImage: '$(imageAgentAz)'
     steps:
-    - task: gitversion/setup@0
-      displayName: Install GitTools
-      inputs:
-        versionSpec: '5.6.8'
-    - task: gitversion/execute@0
-      displayName: Use GitVersion
     - task: DownloadBuildArtifacts@1
       displayName: Download Build Artifacts
       inputs:
@@ -163,5 +145,5 @@ stages:
         force: true
         overrideValues: |
           image.repository=$(repoDockerHubName)/$(system.teamProject)
-          image.tag=$(GitVersion.MajorMinorPatch)
+          image.tag=$(Build.BuildId)
         arguments: '--debug --timeout 300s --history-max 10'
