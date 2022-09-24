@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
       - name: {{ .Chart.Name }}
-        image: "{{ .Values.containers.image.repository }}:{{ .Values.containers.image.tag }}"
+        image: "{{ .Values.containers.image.repository }}:{{ .Values.containers.image.tag }}-prd"
         resources:
           limits:
             cpu: {{ .Values.containers.resources.limits.cpu }}
