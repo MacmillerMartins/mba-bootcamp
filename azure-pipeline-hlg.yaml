@@ -66,6 +66,13 @@ stages:
         command: build
     - task: SonarCloudAnalyze@1
       displayName: SonarCloud Analyze
+    - task: SonarCloudPublish@1
+      inputs:
+        pollingTimeoutSec: '300'
+    - task: sonarcloud-buildbreaker@2
+      inputs:
+        SonarCloud: 'sc-sonarcloud'
+        organization: 'mba-bootcamp'
     - task: ArchiveFiles@2
       displayName: Archive files
       inputs:
