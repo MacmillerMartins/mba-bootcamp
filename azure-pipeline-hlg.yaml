@@ -78,7 +78,7 @@ stages:
       displayName: Docker Build
       inputs:
         containerRegistry: '$(dockerHubServiceConnect)'
-        repository: '$(repoDockerHubName)/$(system.teamProject)'
+        repository: '$(repoDockerHubName)/$(system.teamProject)-hlg'
         command: 'build'
         Dockerfile: '**/Dockerfile'
         tags: |
@@ -88,7 +88,7 @@ stages:
       displayName: Docker Publish
       inputs:
         containerRegistry: '$(dockerHubServiceConnect)'
-        repository: '$(repoDockerHubName)/$(system.teamProject)'
+        repository: '$(repoDockerHubName)/$(system.teamProject)-hlg'
         command: 'push'
         tags: |
           $(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)
@@ -152,6 +152,6 @@ stages:
         recreate: true
         force: true
         overrideValues: |
-          image.repository=$(repoDockerHubName)/$(system.teamProject)
+          image.repository=$(repoDockerHubName)/$(system.teamProject)-hlg
           image.tag=$(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)
         arguments: '--debug --timeout 300s --history-max 10'
