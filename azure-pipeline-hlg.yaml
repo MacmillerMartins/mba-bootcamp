@@ -166,6 +166,8 @@ stages:
       inputs:
         targetType: 'inline'
         script: |
+          az login -u $(azLogin) -p $(azPassword)
+          az aks get-credentials --resource-group rg-bootcamp --name aks-bootcamp --overwrite-existing
           createNamespace='kubectl create namespace $(system.teamProject)-hlg'
           deleteNamespace='kubectl delete namespace $(system.teamProject)-hlg'
           $deleteNamespace > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 5 && $createNamespace; else $createNamespace; fi;
