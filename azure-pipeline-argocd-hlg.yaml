@@ -42,7 +42,7 @@ stages:
 
   - job: DeploytoAks
     displayName: Deploy to Aks
-    dependsOn: HelmCheck
+#    dependsOn: HelmCheck
     pool:
       vmImage: '$(imageAgentAz)'
     steps:
