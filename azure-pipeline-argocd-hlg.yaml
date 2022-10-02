@@ -39,7 +39,9 @@ variables:
   value: https://github.com/MacmillerMartins/mba-bootcamp.git
 
 stages:
-
+- stage: Deploy
+  displayName: Deploy
+  jobs:
   - job: DeploytoAks
     displayName: Deploy to Aks
 #    dependsOn: HelmCheck
