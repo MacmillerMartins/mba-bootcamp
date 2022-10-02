@@ -87,55 +87,29 @@ stages:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)/helm/prd'
         ArtifactName: 'helm'
         publishLocation: 'Container'
+
   - job: DeploytoAks
     displayName: Deploy to Aks
     dependsOn: HelmCheck
     pool:
       vmImage: '$(imageAgentAz)'
     steps:
-    - task: KubectlInstaller@0
-      displayName: Kubectl Install
-      inputs:
-        kubectlVersion: 'latest'
-    - task: Kubernetes@1
-      displayName: Connect Aks
-      inputs:
-        connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: 'sc-aks'
-        namespace: 'default'
     - task: Bash@3
-      displayName: Create Namespace
+      displayName: Install CLI Argo CD
+      inputs:
+        targetType: 'inline'
+        script: |
+          wget https://github.com/argoproj/argo-cd/releases/download/v2.3.3/argocd-linux-amd64 -O argocd-linux-amd64
+          mv argocd-linux-amd64 argocd
+          chmod +x argocd
+    - task: Bash@3
+      displayName: Deploy Argo CD
       inputs:
         targetType: 'inline'
         script: |
           az login -u $(azLogin) -p $(azPassword)
-          az aks get-credentials --resource-group rg-bootcamp --name aks-bootcamp --overwrite-existing
-          createNamespace='kubectl create namespace $(system.teamProject)-prd'
-          deleteNamespace='kubectl delete namespace $(system.teamProject)-prd'
-          $deleteNamespace > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 5 && $createNamespace; else $createNamespace; fi;
-    - task: DownloadBuildArtifacts@1
-      displayName: Download Build Artifacts
-      inputs:
-        buildType: 'current'
-        buildVersionToDownload: 'latest'
-        downloadType: 'single'
-        artifactName: 'helm'
-        downloadPath: '$(Build.ArtifactStagingDirectory)'
-    - task: HelmDeploy@0
-      displayName: Helm Deploy
-      inputs:
-        connectionType: Kubernetes Service Connection
-        kubernetesServiceEndpoint: '$(aksServiceConnect)'
-        azureResourceGroup: '$(azureResourceGroup)'
-        kubernetesCluster: '$(kubernetesCluster)'
-        releaseName: '$(system.teamProject)-prd'
-        namespace: '$(system.teamProject)-prd'
-        command: 'upgrade'
-        chartType: 'FilePath'
-        chartPath: '$(Build.ArtifactStagingDirectory)/helm'
-        recreate: true
-        force: true
-        overrideValues: |
-          image.repository=$(repoDockerHubName)/$(system.teamProject)-prd
-          image.tag=$(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)
-        arguments: '--debug --timeout 300s --history-max 10'
+          az aks get-credentials --resource-group $(azureResourceGroup) --name $(kubernetesCluster)
+          kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d > argocdAdminPassword
+          kubectl get service argocd-server -n argocd | awk '{print$4}' | sed -n '2p' > argocdServer
+          ./argocd login `cat argocdServer`:80 --insecure --username admin --password `cat argocdAdminPassword`
+          ./argocd app create $(system.teamProject)-prd --project $(system.teamProject)-prd --sync-policy auto --auto-prune --self-heal --sync-option CreateNamespace=true --repo $(githubRepo) --revision HEAD --path helm/hlg --dest-server https://kubernetes.default.svc --dest-namespace $(system.teamProject)-prd --values values.yaml
