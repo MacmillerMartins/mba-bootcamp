@@ -163,21 +163,13 @@ stages:
           wget https://github.com/argoproj/argo-cd/releases/download/v2.3.3/argocd-linux-amd64 -O argocd-linux-amd64
           mv argocd-linux-amd64 argocd
           chmod +x argocd
-    - task: KubectlInstaller@0
-      displayName: Kubectl Install
-      inputs:
-        kubectlVersion: 'latest'
-    - task: Kubernetes@1
-      displayName: Connect Aks
-      inputs:
-        connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: 'sc-aks'
-        namespace: 'default'
     - task: Bash@3
       displayName: Deploy Argo CD
       inputs:
         targetType: 'inline'
         script: |
+          az login -u $(azLogin) -p $(azPassword)
+          az aks get-credentials --resource-group $(azureResourceGroup) --name $(kubernetesCluster)
           kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d > argocdAdminPassword
           kubectl get service argocd-server -n argocd | awk '{print$4}' | sed -n '2p' > argocdServer
           ./argocd login `cat argocdServer`:80 --insecure --username admin --password `cat argocdAdminPassword`
