@@ -1,0 +1,141 @@
+resources:
+  repositories:
+  - repository: mba-bootcamp
+    type: github
+    endpoint: 'mba-bootcamp'
+    name: MacmillerMartins/mba-bootcamp
+
+variables:
+# Vesion = Major + Minor + BuildId
+# Verison = $(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)
+# Exemplo: 
+# Version= 1.1.222
+- name: versionNumberMajor
+  value: '1'
+- name: versionNumberMinor
+  value: '1'
+# Docker Hub
+- name: repoDockerHubName
+  value: 'macmiller'
+- name: dockerHubServiceConnect
+  value: 'sc-dockerhub'
+# Agent Azure DevOps
+- name: imageAgentAz
+  value: 'ubuntu-latest'
+# Aks 
+- name: azureResourceGroup
+  value: 'rg-bootcamp'
+- name: kubernetesCluster
+  value: 'aks-bootcamp'
+- name: aksServiceConnect
+  value: 'sc-aks'
+
+stages:
+
+- stage: TagandPublish
+  displayName: Tag and Publish
+  jobs:
+  - job: BuildandPublish
+    displayName: Build and Publish
+    pool:
+      vmImage: '$(imageAgentAz)'
+    steps:
+    - task: CmdLine@2
+      displayName: Tagging
+      inputs:
+        script: |
+          sudo docker pull '$(repoDockerHubName)/$(system.teamProject)-hlg:latest'
+          sudo docker tag '$(repoDockerHubName)/$(system.teamProject)-hlg:latest' '$(repoDockerHubName)/$(system.teamProject)-prd:$(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)'
+          sudo docker tag '$(repoDockerHubName)/$(system.teamProject)-hlg:latest' '$(repoDockerHubName)/$(system.teamProject)-prd:latest'
+    - task: Docker@2
+      displayName: Docker Publish
+      inputs:
+        containerRegistry: '$(dockerHubServiceConnect)'
+        repository: '$(repoDockerHubName)/$(system.teamProject)-prd'
+        command: 'push'
+        tags: |
+          $(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)
+          latest
+
+- stage: Deploy
+  displayName: Deploy
+  dependsOn: TagandPublish
+  jobs:
+  - job: HelmCheck
+    displayName: Helm Check
+    pool:
+      vmImage: '$(imageAgentAz)'
+    steps:
+    - task: Bash@3
+      displayName: Helm lint
+      inputs:
+        targetType: 'inline'
+        script: |
+          helm lint helm/prd
+        failOnStderr: true
+    - task: CopyFiles@2
+      displayName: Copy Helm Files
+      inputs:
+        SourceFolder: '$(system.defaultworkingdirectory)'
+        Contents: |
+          helm/prd/**
+        TargetFolder: '$(Build.ArtifactStagingDirectory)/'
+        OverWrite: true
+    - task: PublishBuildArtifacts@1
+      displayName: Build and Plublish Artifacts Helm
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/helm/prd'
+        ArtifactName: 'helm'
+        publishLocation: 'Container'
+  - job: DeploytoAks
+    displayName: Deploy to Aks
+    dependsOn: HelmCheck
+    pool:
+      vmImage: '$(imageAgentAz)'
+    steps:
+    - task: KubectlInstaller@0
+      displayName: Kubectl Install
+      inputs:
+        kubectlVersion: 'latest'
+    - task: Kubernetes@1
+      displayName: Connect Aks
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: 'sc-aks'
+        namespace: 'default'
+    - task: Bash@3
+      displayName: Create Namespace
+      inputs:
+        targetType: 'inline'
+        script: |
+          az login -u $(azLogin) -p $(azPassword)
+          az aks get-credentials --resource-group rg-bootcamp --name aks-bootcamp --overwrite-existing
+          createNamespace='kubectl create namespace $(system.teamProject)-prd'
+          deleteNamespace='kubectl delete namespace $(system.teamProject)-prd'
+          $deleteNamespace > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 5 && $createNamespace; else $createNamespace; fi;
+    - task: DownloadBuildArtifacts@1
+      displayName: Download Build Artifacts
+      inputs:
+        buildType: 'current'
+        buildVersionToDownload: 'latest'
+        downloadType: 'single'
+        artifactName: 'helm'
+        downloadPath: '$(Build.ArtifactStagingDirectory)'
+    - task: HelmDeploy@0
+      displayName: Helm Deploy
+      inputs:
+        connectionType: Kubernetes Service Connection
+        kubernetesServiceEndpoint: '$(aksServiceConnect)'
+        azureResourceGroup: '$(azureResourceGroup)'
+        kubernetesCluster: '$(kubernetesCluster)'
+        releaseName: '$(system.teamProject)-prd'
+        namespace: '$(system.teamProject)-prd'
+        command: 'upgrade'
+        chartType: 'FilePath'
+        chartPath: '$(Build.ArtifactStagingDirectory)/helm'
+        recreate: true
+        force: true
+        overrideValues: |
+          image.repository=$(repoDockerHubName)/$(system.teamProject)-prd
+          image.tag=$(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)
+        arguments: '--debug --timeout 300s --history-max 10'
