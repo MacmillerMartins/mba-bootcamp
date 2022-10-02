@@ -77,4 +77,4 @@ stages:
       inputs:
         targetType: 'inline'
         script: |
-          ./argocd app create $(system.teamProject)-hlg --project $(system.teamProject)-hlg --sync-policy auto --auto-prune --self-heal --sync-option CreateNamespace=true --repo $(githubRepo) --revision HEAD --path helm/hlg --dest-server https://kubernetes.default.svc --dest-namespace $(system.teamProject)-hlg --values values.yaml
+          ./argocd app create $(system.teamProject)-hlg --project default --sync-policy auto --auto-prune --self-heal --sync-option CreateNamespace=true --repo $(githubRepo) --revision HEAD --path helm/hlg --dest-server https://kubernetes.default.svc --dest-namespace $(system.teamProject)-hlg --values values.yaml
