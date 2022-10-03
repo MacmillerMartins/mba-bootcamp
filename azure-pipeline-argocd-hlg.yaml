@@ -44,114 +44,9 @@ stages:
   displayName: Tests
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   jobs:
-  - job: Tests
-    displayName: Tests
-    pool:
-      vmImage: '$(imageAgentAz)'
-    steps:
-    - task: SonarCloudPrepare@1
-      displayName: SonarCloud Prepare
-      inputs:
-        SonarCloud: '$(sonarCloudServiceConnect)'
-        organization: '$(system.teamProject)'
-        scannerMode: 'CLI'
-        configMode: 'manual'
-        cliProjectKey: '$(sonarCloudProjectKey)'
-        cliProjectName: '$(system.teamProject)'
-        cliSources: '.'
-    - task: GoTool@0
-      displayName: Go Install
-      inputs:
-        version: '1.18'
-    - task: Go@0
-      displayName: Go Build
-      inputs:
-        command: build
-    - task: SonarCloudAnalyze@1
-      displayName: SonarCloud Analyze
-    - task: SonarCloudPublish@1
-      inputs:
-        pollingTimeoutSec: '300'
-    - task: sonarcloud-buildbreaker@2
-      inputs:
-        SonarCloud: 'sc-sonarcloud'
-        organization: 'mba-bootcamp'
-    - task: ArchiveFiles@2
-      displayName: Archive files
-      inputs:
-        rootFolderOrFile: '$(Build.Repository.LocalPath)'
-        includeRootFolder: False
-    - task: PublishBuildArtifacts@1
-      displayName: Publish Artifact
-      condition: succeededOrFailed()
-    - task: SonarCloudPublish@1
-      displayName: SonarCloud Publish
-      inputs:
-        pollingTimeoutSec: '300'
-
-- stage: BuildandPublish
-  displayName: Build and Publish
-  dependsOn: Tests
-  jobs:
-  - job: BuildandPublish
-    displayName: Build and Publish
-    pool:
-      vmImage: '$(imageAgentAz)'
-    steps:
-    - task: Docker@2
-      displayName: Docker Build
-      inputs:
-        containerRegistry: '$(dockerHubServiceConnect)'
-        repository: '$(repoDockerHubName)/$(system.teamProject)-hlg'
-        command: 'build'
-        Dockerfile: '**/Dockerfile'
-        tags: |
-          $(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)
-          latest
-    - task: Docker@2
-      displayName: Docker Publish
-      inputs:
-        containerRegistry: '$(dockerHubServiceConnect)'
-        repository: '$(repoDockerHubName)/$(system.teamProject)-hlg'
-        command: 'push'
-        tags: |
-          $(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)
-          latest
-
-- stage: Deploy
-  displayName: Deploy
-  dependsOn: BuildandPublish
-  jobs:
-  - job: HelmCheck
-    displayName: Helm Check
-    pool:
-      vmImage: '$(imageAgentAz)'
-    steps:
-    - task: Bash@3
-      displayName: Helm lint
-      inputs:
-        targetType: 'inline'
-        script: |
-          helm lint helm/hlg
-        failOnStderr: true
-    - task: CopyFiles@2
-      displayName: Copy Helm Files
-      inputs:
-        SourceFolder: '$(system.defaultworkingdirectory)'
-        Contents: |
-          helm/**
-        TargetFolder: '$(Build.ArtifactStagingDirectory)/'
-        OverWrite: true
-    - task: PublishBuildArtifacts@1
-      displayName: Build and Plublish Artifacts Helm
-      inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)/helm/hlg'
-        ArtifactName: 'helm'
-        publishLocation: 'Container'
-
   - job: DeploytoAks
     displayName: Deploy to Aks
-    dependsOn: HelmCheck
+#    dependsOn: HelmCheck
     pool:
       vmImage: '$(imageAgentAz)'
     steps:
@@ -173,13 +68,6 @@ stages:
           kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d > argocdAdminPassword
           kubectl get service argocd-server -n argocd | awk '{print$4}' | sed -n '2p' > argocdServer
           ./argocd login `cat argocdServer`:80 --insecure --username admin --password `cat argocdAdminPassword`
-    - task: Bash@3
-      displayName: Verify/Delete App Argo CD
-      inputs:
-        targetType: 'inline'
-        script: |
-          deleteAppArgocd='./argocd app delete $(system.teamProject)-hlg'
-          $deleteApptArgocd > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 5 && echo "App deletado"; else echo "App não Existe"; fi;
     - task: Bash@3
       displayName: Create Project Argo CD
       inputs:
