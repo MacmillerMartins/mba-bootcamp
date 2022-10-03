@@ -181,21 +181,17 @@ stages:
           deleteAppArgocd='./argocd app delete $(system.teamProject)-hlg'
           $deleteApptArgocd > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 5 && echo "App deletado"; else echo "App não Existe"; fi;
     - task: Bash@3
-      displayName: Verify/Delete Project Argo CD
-      inputs:
-        targetType: 'inline'
-        script: |
-          deleteProjectArgocd='./argocd proj delete $(system.teamProject)-hlg'
-          $deleteProjectArgocd > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 5 && echo "Projeto deletado"; else echo "Projeto não Existe"; fi;
-    - task: Bash@3
       displayName: Create Project Argo CD
       inputs:
         targetType: 'inline'
         script: |
-          ./argocd proj create $(system.teamProject)-hlg --dest '*,*' --src '*' --allow-cluster-resource '*/*'
+          createProjectArgocd='./argocd proj create $(system.teamProject)-hlg --dest '*,*' --src '*' --allow-cluster-resource '*/*''
+          $createProjectArgocd > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 5 && echo "Projeto criado"; else echo "Projeto já Existe"; fi;
     - task: Bash@3
       displayName: Create App Argo CD
       inputs:
         targetType: 'inline'
         script: |
-          ./argocd app create $(system.teamProject)-hlg --project $(system.teamProject)-hlg --sync-policy auto --auto-prune --self-heal --sync-option CreateNamespace=true --repo $(githubRepo) --revision HEAD --path helm/hlg --dest-server https://kubernetes.default.svc --dest-namespace $(system.teamProject)-hlg --values values.yaml
+          createApptArgocd='./argocd app create $(system.teamProject)-hlg --project $(system.teamProject)-hlg --sync-policy auto --auto-prune --self-heal --sync-option CreateNamespace=true --repo $(githubRepo) --revision HEAD --path helm/hlg --dest-server https://kubernetes.default.svc --dest-namespace $(system.teamProject)-hlg --values values.yaml'
+          $syncAppArgocd='./argocd app sync $(system.teamProject)-hlg --force'
+          $createApptArgocd > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 5 && echo "App criado"; else $syncAppArgocd; fi;
