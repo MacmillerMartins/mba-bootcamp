@@ -113,24 +113,17 @@ stages:
           kubectl get service argocd-server -n argocd | awk '{print$4}' | sed -n '2p' > argocdServer
           ./argocd login `cat argocdServer`:80 --insecure --username admin --password `cat argocdAdminPassword`
     - task: Bash@3
-      displayName: Verify/Delete App Argo CD
-      inputs:
-        targetType: 'inline'
-        script: |
-          deleteAppArgocd='./argocd app delete $(system.teamProject)-prd'
-          $deleteApptArgocd > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 5 && echo "App deletado"; else echo "App não Existe"; fi;
-    - task: Bash@3
       displayName: Create Project Argo CD
       inputs:
         targetType: 'inline'
         script: |
-          createProjectArgocd='./argocd proj create $(system.teamProject)-prd --dest '*,*' --src '*' --allow-cluster-resource '*/*''
+          createProjectArgocd=`./argocd proj create $(system.teamProject)-prd --dest '*,*' --src '*' --allow-cluster-resource '*/*'`
           $createProjectArgocd > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 5 && echo "Projeto criado"; else echo "Projeto já Existe"; fi;
     - task: Bash@3
       displayName: Create App Argo CD
       inputs:
         targetType: 'inline'
         script: |
-          createApptArgocd='./argocd app create $(system.teamProject)-prd --project $(system.teamProject)-prd --sync-policy auto --auto-prune --self-heal --sync-option CreateNamespace=true --repo $(githubRepo) --revision HEAD --path helm/hlg --dest-server https://kubernetes.default.svc --dest-namespace $(system.teamProject)-prd --values values.yaml'
-          $syncAppArgocd='./argocd app sync $(system.teamProject)-prd --force'
+          createApptArgocd=`./argocd app create $(system.teamProject)-prd --project $(system.teamProject)-prd --sync-policy auto --auto-prune --self-heal --sync-option CreateNamespace=true --repo $(githubRepo) --revision HEAD --path helm/hlg --dest-server https://kubernetes.default.svc --dest-namespace $(system.teamProject)-prd --values values.yaml`
+          $syncAppArgocd=`./argocd app sync $(system.teamProject)-prd --force --replace`
           $createApptArgocd > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 5 && echo "App criado"; else $syncAppArgocd; fi;
