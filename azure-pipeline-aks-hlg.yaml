@@ -34,6 +34,9 @@ variables:
   value: 'sc-sonarcloud'
 - name: sonarCloudProjectKey
   value: 'MacmillerMartins_mba-bootcamp'
+# GitHub
+- name: githubRepo
+  value: https://github.com/MacmillerMartins/mba-bootcamp
 
 stages:
 
@@ -56,14 +59,31 @@ stages:
         cliProjectKey: '$(sonarCloudProjectKey)'
         cliProjectName: '$(system.teamProject)'
         cliSources: '.'
-    - task: CmdLine@2
-      displayName: Go Test Build
+    - task: GoTool@0
+      displayName: Go Install
       inputs:
-        script: |
-          go mod init example.com/m/v2
-          go build
+        version: '1.18'
+    - task: Go@0
+      displayName: Go Build
+      inputs:
+        command: build
     - task: SonarCloudAnalyze@1
       displayName: SonarCloud Analyze
+    - task: SonarCloudPublish@1
+      inputs:
+        pollingTimeoutSec: '300'
+    - task: sonarcloud-buildbreaker@2
+      inputs:
+        SonarCloud: 'sc-sonarcloud'
+        organization: 'mba-bootcamp'
+    - task: ArchiveFiles@2
+      displayName: Archive files
+      inputs:
+        rootFolderOrFile: '$(Build.Repository.LocalPath)'
+        includeRootFolder: False
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Artifact
+      condition: succeededOrFailed()
     - task: SonarCloudPublish@1
       displayName: SonarCloud Publish
       inputs:
@@ -128,12 +148,37 @@ stages:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)/helm/hlg'
         ArtifactName: 'helm'
         publishLocation: 'Container'
+
   - job: DeploytoAks
     displayName: Deploy to Aks
     dependsOn: HelmCheck
     pool:
       vmImage: '$(imageAgentAz)'
     steps:
+    - task: KubectlInstaller@0
+      displayName: Kubectl Install
+      inputs:
+        kubectlVersion: 'latest'
+    - task: Kubernetes@1
+      displayName: Connect Aks
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: '$(aksServiceConnect)'
+        namespace: 'default'
+    - task: Bash@3
+      displayName: Login Cluster Aks
+      inputs:
+        targetType: 'inline'
+        script: |
+          az login -u $(azLogin) -p $(azPassword)
+          az aks get-credentials --resource-group $(azureResourceGroup) --name $(kubernetesCluster) --overwrite-existing
+    - task: Bash@3
+      displayName: Create Namespace
+      inputs:
+        targetType: 'inline'
+        script: |
+          createNamespace='kubectl create namespace $(system.teamProject)-hlg'
+          $createNamespace > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 5 && echo "Namespace Criado"; else echo "Namespace já Existe"; fi;
     - task: DownloadBuildArtifacts@1
       displayName: Download Build Artifacts
       inputs:
@@ -150,6 +195,7 @@ stages:
         azureResourceGroup: '$(azureResourceGroup)'
         kubernetesCluster: '$(kubernetesCluster)'
         releaseName: '$(system.teamProject)-hlg'
+        namespace: '$(system.teamProject)-hlg'
         command: 'upgrade'
         chartType: 'FilePath'
         chartPath: '$(Build.ArtifactStagingDirectory)/helm'

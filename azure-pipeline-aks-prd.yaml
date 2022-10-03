@@ -93,6 +93,30 @@ stages:
     pool:
       vmImage: '$(imageAgentAz)'
     steps:
+    - task: KubectlInstaller@0
+      displayName: Kubectl Install
+      inputs:
+        kubectlVersion: 'latest'
+    - task: Kubernetes@1
+      displayName: Connect Aks
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: 'sc-aks'
+        namespace: 'default'
+    - task: Bash@3
+      displayName: Login Cluster Aks
+      inputs:
+        targetType: 'inline'
+        script: |
+          az login -u $(azLogin) -p $(azPassword)
+          az aks get-credentials --resource-group $(azureResourceGroup) --name $(kubernetesCluster) --overwrite-existing
+    - task: Bash@3
+      displayName: Create Namespace
+      inputs:
+        targetType: 'inline'
+        script: |
+          createNamespace='kubectl create namespace $(system.teamProject)-prd'
+          $createNamespace > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 5 && echo "Namespace Criado"; else echo "Namespace já Existe"; fi;
     - task: DownloadBuildArtifacts@1
       displayName: Download Build Artifacts
       inputs:
@@ -109,6 +133,7 @@ stages:
         azureResourceGroup: '$(azureResourceGroup)'
         kubernetesCluster: '$(kubernetesCluster)'
         releaseName: '$(system.teamProject)-prd'
+        namespace: '$(system.teamProject)-prd'
         command: 'upgrade'
         chartType: 'FilePath'
         chartPath: '$(Build.ArtifactStagingDirectory)/helm'
