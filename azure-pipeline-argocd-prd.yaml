@@ -128,5 +128,5 @@ stages:
         targetType: 'inline'
         script: |
           createAppArgocd=`./argocd app create $(system.teamProject)-prd --project $(system.teamProject)-prd --sync-policy auto --auto-prune --self-heal --sync-option CreateNamespace=true --repo $(githubRepo) --revision HEAD --path helm/prd --dest-server https://kubernetes.default.svc --dest-namespace $(system.teamProject)-prd --values values.yaml | sleep 30`
-          $syncAppArgocd=`./argocd app sync $(system.teamProject)-prd --force --replace | sleep 30`
+          syncAppArgocd=`./argocd app sync $(system.teamProject)-prd --force --replace | sleep 30`
           $createAppArgocd > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 30 && echo "App criado"; else $syncAppArgocd; fi;
