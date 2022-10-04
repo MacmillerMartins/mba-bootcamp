@@ -47,9 +47,9 @@ stages:
       displayName: Tagging
       inputs:
         script: |
-          sudo docker pull '$(repoDockerHubName)/$(system.teamProject)-prd:latest'
-          sudo docker tag '$(repoDockerHubName)/$(system.teamProject)-prd:latest' '$(repoDockerHubName)/$(system.teamProject)-prd:$(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)'
-          sudo docker tag '$(repoDockerHubName)/$(system.teamProject)-prd:latest' '$(repoDockerHubName)/$(system.teamProject)-prd:latest'
+          sudo docker pull '$(repoDockerHubName)/$(system.teamProject)-hlg:latest'
+          sudo docker tag '$(repoDockerHubName)/$(system.teamProject)-hlg:latest' '$(repoDockerHubName)/$(system.teamProject)-prd:$(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)'
+          sudo docker tag '$(repoDockerHubName)/$(system.teamProject)-hlg:latest' '$(repoDockerHubName)/$(system.teamProject)-prd:latest'
     - task: Docker@2
       displayName: Docker Publish
       inputs:
