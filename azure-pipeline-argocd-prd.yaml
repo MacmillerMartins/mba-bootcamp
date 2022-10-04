@@ -29,6 +29,9 @@ variables:
   value: 'aks-bootcamp'
 - name: aksServiceConnect
   value: 'sc-aks'
+# GitHub
+- name: githubRepo
+  value: https://github.com/MacmillerMartins/mba-bootcamp.git
 
 stages:
 
