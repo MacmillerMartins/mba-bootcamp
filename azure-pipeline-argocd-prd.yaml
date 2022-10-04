@@ -29,6 +29,9 @@ variables:
   value: 'aks-bootcamp'
 - name: aksServiceConnect
   value: 'sc-aks'
+# GitHub
+- name: githubRepo
+  value: 'https://github.com/MacmillerMartins/mba-bootcamp.git'
 
 stages:
 
@@ -44,9 +47,9 @@ stages:
       displayName: Tagging
       inputs:
         script: |
-          sudo docker pull '$(repoDockerHubName)/$(system.teamProject)-prd:latest'
-          sudo docker tag '$(repoDockerHubName)/$(system.teamProject)-prd:latest' '$(repoDockerHubName)/$(system.teamProject)-prd:$(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)'
-          sudo docker tag '$(repoDockerHubName)/$(system.teamProject)-prd:latest' '$(repoDockerHubName)/$(system.teamProject)-prd:latest'
+          sudo docker pull '$(repoDockerHubName)/$(system.teamProject)-hlg:latest'
+          sudo docker tag '$(repoDockerHubName)/$(system.teamProject)-hlg:latest' '$(repoDockerHubName)/$(system.teamProject)-prd:$(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)'
+          sudo docker tag '$(repoDockerHubName)/$(system.teamProject)-hlg:latest' '$(repoDockerHubName)/$(system.teamProject)-prd:latest'
     - task: Docker@2
       displayName: Docker Publish
       inputs:
@@ -124,6 +127,6 @@ stages:
       inputs:
         targetType: 'inline'
         script: |
-          createApptArgocd=`./argocd app create $(system.teamProject)-prd --project $(system.teamProject)-prd --sync-policy auto --auto-prune --self-heal --sync-option CreateNamespace=true --repo $(githubRepo) --revision HEAD --path helm/hlg --dest-server https://kubernetes.default.svc --dest-namespace $(system.teamProject)-prd --values values.yaml`
-          $syncAppArgocd=`./argocd app sync $(system.teamProject)-prd --force --replace`
-          $createApptArgocd > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 5 && echo "App criado"; else $syncAppArgocd; fi;
+          createAppArgocd=`./argocd app create $(system.teamProject)-prd --project $(system.teamProject)-prd --sync-policy auto --auto-prune --self-heal --sync-option CreateNamespace=true --repo $(githubRepo) --revision HEAD --path helm/prd --dest-server https://kubernetes.default.svc --dest-namespace $(system.teamProject)-prd --values values.yaml | sleep 30`
+          syncAppArgocd=`./argocd app sync $(system.teamProject)-prd --force --replace | sleep 30`
+          $createAppArgocd > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 30 && echo "App criado"; else $syncAppArgocd; fi;
