@@ -12,7 +12,7 @@ variables:
 - name: versionNumberMinor
   value: '1'
 - name: versionNumberPatch
-  value: '1'
+  value: '2'
 # Docker Hub
 - name: repoDockerHubName
   value: 'macmiller'

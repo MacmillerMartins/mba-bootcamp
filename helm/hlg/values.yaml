@@ -3,7 +3,7 @@ replicas: 3
 containers:
   image:
     repository: macmiller/mba-bootcamp-hlg
-    tag: '1.1.1'
+    tag: '1.1.2'
   ports:
     containerPort: 8080
   resources:
