@@ -6,13 +6,12 @@ resources:
     name: MacmillerMartins/mba-bootcamp
 
 variables:
-# Vesion = Major + Minor + BuildId
-# Verison = $(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)
-# Exemplo: 
-# Version= 1.1.222
+# Version
 - name: versionNumberMajor
   value: '1'
 - name: versionNumberMinor
+  value: '1'
+- name: versionNumberPatch
   value: '1'
 # Docker Hub
 - name: repoDockerHubName
@@ -106,7 +105,7 @@ stages:
         command: 'build'
         Dockerfile: '**/Dockerfile'
         tags: |
-          $(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)
+          $(versionNumberMajor).$(versionNumberMinor).$(versionNumberPatch)
           latest
     - task: Docker@2
       displayName: Docker Publish
@@ -115,7 +114,7 @@ stages:
         repository: '$(repoDockerHubName)/$(system.teamProject)-hlg'
         command: 'push'
         tags: |
-          $(versionNumberMajor).$(versionNumberMinor).$(Build.BuildId)
+          $(versionNumberMajor).$(versionNumberMinor).$(versionNumberPatch)
           latest
 
 - stage: Deploy
@@ -185,6 +184,6 @@ stages:
       inputs:
         targetType: 'inline'
         script: |
-          createAppArgocd=`./argocd app create $(system.teamProject)-hlg --project $(system.teamProject)-hlg --sync-policy auto --auto-prune --self-heal --sync-option CreateNamespace=true --repo $(githubRepo) --revision HEAD --path helm/hlg --dest-server https://kubernetes.default.svc --dest-namespace $(system.teamProject)-hlg --values values.yaml | sleep 30`
+          createAppArgocd=`./argocd app create $(system.teamProject)-hlg --project $(system.teamProject)-hlg --sync-policy auto --sync-option CreateNamespace=true --repo $(githubRepo) --revision HEAD --path helm/hlg --dest-server https://kubernetes.default.svc --dest-namespace $(system.teamProject)-hlg --values values.yaml | sleep 30`
           syncAppArgocd=`./argocd app sync $(system.teamProject)-hlg --force --replace | sleep 30`
           $createAppArgocd > /dev/null 2>&1; if [ $? -eq 0 ]; then sleep 30 && echo "App criado"; else $syncAppArgocd; fi;
