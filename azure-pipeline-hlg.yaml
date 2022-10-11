@@ -15,7 +15,7 @@ resources:
 
 variables:
 # Group variables default
-- template: /mba-bootcamp/variables/variables.yaml@devops-repo-yaml
+- template: /mba-bootcamp/variables/variables.yaml@mba-bootcamp-template
 # Build Version
 - name: versionNumberMajor
   value: '1'
@@ -29,7 +29,7 @@ variables:
 
 stages:
 # Continuous integration stages
-- template: /mba-bootcamp/hlg/Tests-hlg.yaml@devops-repo-yaml      
-- template: /mba-bootcamp/hlg/BuildandPublish-hlg.yaml@devops-repo-yaml
+- template: /mba-bootcamp/hlg/Tests-hlg.yaml@mba-bootcamp-template      
+- template: /mba-bootcamp/hlg/BuildandPublish-hlg.yaml@mba-bootcamp-template
 # Continuous delivery stage
-- template: /mba-bootcamp/hlg/Release-hlg.yaml@devops-repo-yaml
+- template: /mba-bootcamp/hlg/Release-hlg.yaml@mba-bootcamp-template
