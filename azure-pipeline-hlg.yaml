@@ -1,0 +1,35 @@
+resources:
+  repositories:
+  - repository: mba-bootcamp
+    type: github
+    endpoint: 'mba-bootcamp'
+    name: MacmillerMartins/mba-bootcamp
+  - repository: mba-bootcamp-helm
+    type: github
+    endpoint: 'mba-bootcamp'
+    name: MacmillerMartins/mba-bootcamp-helm
+  - repository: mba-bootcamp-template
+    type: github
+    endpoint: 'mba-bootcamp'
+    name: MacmillerMartins/mba-bootcamp-template
+
+variables:
+# Group variables default
+- template: /mba-bootcamp/variables/variables.yaml@devops-repo-yaml
+# Build Version
+- name: versionNumberMajor
+  value: '1'
+- name: versionNumberMinor
+  value: '1'
+- name: versionNumberPatch
+  value: '1'
+# Agent Azure DevOps
+- name: imageAgentAz
+  value: 'ubuntu-latest'
+
+stages:
+# Continuous integration stages
+- template: /mba-bootcamp/hlg/Tests-hlg.yaml@devops-repo-yaml      
+- template: /mba-bootcamp/hlg/BuildandPublish-hlg.yaml@devops-repo-yaml
+# Continuous delivery stage
+- template: /mba-bootcamp/hlg/Release-hlg.yaml@devops-repo-yaml
