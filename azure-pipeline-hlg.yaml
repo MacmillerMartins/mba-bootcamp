@@ -29,7 +29,7 @@ variables:
 
 stages:
 # Continuous integration stages
-- template: /mba-bootcamp/hlg/Tests-hlg.yaml@mba-bootcamp-template      
-- template: /mba-bootcamp/hlg/BuildandPublish-hlg.yaml@mba-bootcamp-template
+#- template: /mba-bootcamp/hlg/Tests-hlg.yaml@mba-bootcamp-template      
+#- template: /mba-bootcamp/hlg/BuildandPublish-hlg.yaml@mba-bootcamp-template
 # Continuous delivery stage
 - template: /mba-bootcamp/hlg/Release-hlg.yaml@mba-bootcamp-template
