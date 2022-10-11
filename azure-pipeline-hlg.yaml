@@ -22,7 +22,7 @@ variables:
 - name: versionNumberMinor
   value: '1'
 - name: versionNumberPatch
-  value: '1'
+  value: '2'
 # Agent Azure DevOps
 - name: imageAgentAz
   value: 'ubuntu-latest'
